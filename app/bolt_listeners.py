@@ -205,8 +205,9 @@ def respond_to_new_message(
         if is_in_dm_with_bot is False and thread_ts is None:
             return
 
-        openai_api_key = context.get("OPENAI_API_KEY")
+        openai_api_key = context.get("ANTHROPIC_API_KEY")
         if openai_api_key is None:
+            print("Goodbye, cruel world!")
             return
 
         messages_in_context = []
@@ -343,46 +344,19 @@ def respond_to_new_message(
                 user=context.user_id,
             )
         else:
-            stream = start_receiving_openai_response(
-                openai_api_key=openai_api_key,
-                model=context["OPENAI_MODEL"],
-                temperature=context["OPENAI_TEMPERATURE"],
+            anthropic_call = make_anthropic_call(messages)
+            print(anthropic_call)
+
+            # Update the WIP message with the response
+            update_wip_message(
+                client=client,
+                channel=context.channel_id,
+                ts=wip_reply["message"]["ts"],
+                text=anthropic_call,
                 messages=messages,
                 user=user_id,
-                openai_api_type=context["OPENAI_API_TYPE"],
-                openai_api_base=context["OPENAI_API_BASE"],
-                openai_api_version=context["OPENAI_API_VERSION"],
-                openai_deployment_id=context["OPENAI_DEPLOYMENT_ID"],
-                function_call_module_name=context["OPENAI_FUNCTION_CALL_MODULE_NAME"],
             )
 
-            latest_replies = client.conversations_replies(
-                channel=context.channel_id,
-                ts=wip_reply.get("ts"),
-                include_all_metadata=True,
-                limit=1000,
-            )
-            if (
-                latest_replies.get("messages", [])[-1]["ts"]
-                != wip_reply["message"]["ts"]
-            ):
-                # Since a new reply will come soon, this app abandons this reply
-                client.chat_delete(
-                    channel=context.channel_id,
-                    ts=wip_reply["message"]["ts"],
-                )
-                return
-
-            consume_openai_stream_to_write_reply(
-                client=client,
-                wip_reply=wip_reply,
-                context=context,
-                user_id=user_id,
-                messages=messages,
-                stream=stream,
-                timeout_seconds=LLM_TIMEOUT_SECONDS,
-                translate_markdown=TRANSLATE_MARKDOWN,
-            )
 
     except Timeout:
         if wip_reply is not None:
@@ -476,7 +450,6 @@ def display_chat_from_scratch_result(
     logger: logging.Logger,
     payload: dict,
 ):
-    openai_api_key = context.get("ANTHROPIC_API_KEY")
     try:
         prompt = extract_state_value(payload, "prompt").get("value")
         text = "\n".join(map(lambda s: f">{s}", prompt.split("\n")))

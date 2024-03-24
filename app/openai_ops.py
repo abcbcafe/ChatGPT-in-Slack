@@ -69,9 +69,6 @@ def messages_within_context_window(
 
 def make_anthropic_call(message) -> object:
     print(">>> Calling Anthropic")
-    #anthropic.Anthropic().messages
-    #completion = anthropic.Anthropic().completions.create(model="claude-2.1", max_tokens_to_sample=1024,
-                                  #                        prompt=f"{HUMAN_PROMPT} {message} {AI_PROMPT}", )
 
     completion = anthropic.Anthropic().messages.create(
         model="claude-3-opus-20240229",
