@@ -3,8 +3,6 @@ from typing import List, Dict
 
 from slack_sdk.web import WebClient, SlackResponse
 from slack_bolt import BoltContext
-
-from app.i18n import translate
 from app.markdown import slack_to_markdown
 
 
@@ -14,7 +12,7 @@ from app.markdown import slack_to_markdown
 
 
 def find_parent_message(
-    client: WebClient, channel_id: Optional[str], thread_ts: Optional[str]
+        client: WebClient, channel_id: Optional[str], thread_ts: Optional[str]
 ) -> Optional[dict]:
     if channel_id is None or thread_ts is None:
         return None
@@ -35,17 +33,17 @@ def is_this_app_mentioned(context: BoltContext, parent_message: dict) -> bool:
 
 
 def build_thread_replies_as_combined_text(
-    *,
-    context: BoltContext,
-    client: WebClient,
-    channel: str,
-    thread_ts: str,
+        *,
+        context: BoltContext,
+        client: WebClient,
+        channel: str,
+        thread_ts: str,
 ) -> str:
     thread_content = ""
     for page in client.conversations_replies(
-        channel=channel,
-        ts=thread_ts,
-        limit=1000,
+            channel=channel,
+            ts=thread_ts,
+            limit=1000,
     ):
         for reply in page.get("messages", []):
             user = reply.get("user")
@@ -66,13 +64,13 @@ def build_thread_replies_as_combined_text(
 
 
 def post_wip_message(
-    *,
-    client: WebClient,
-    channel: str,
-    thread_ts: str,
-    loading_text: str,
-    messages: List[Dict[str, str]],
-    user: str,
+        *,
+        client: WebClient,
+        channel: str,
+        thread_ts: str,
+        loading_text: str,
+        messages: List[Dict[str, str]],
+        user: str,
 ) -> SlackResponse:
     system_messages = [msg for msg in messages if msg["role"] == "system"]
     return client.chat_postMessage(
@@ -87,12 +85,12 @@ def post_wip_message(
 
 
 def update_wip_message(
-    client: WebClient,
-    channel: str,
-    ts: str,
-    text: str,
-    messages: List[Dict[str, str]],
-    user: str,
+        client: WebClient,
+        channel: str,
+        ts: str,
+        text: str,
+        messages: List[Dict[str, str]],
+        user: str,
 ) -> SlackResponse:
     system_messages = [msg for msg in messages if msg["role"] == "system"]
     return client.chat_update(
@@ -119,11 +117,11 @@ DEFAULT_HOME_TAB_CONFIGURE_LABEL = "Configure"
 
 
 def build_home_tab(
-    *,
-    api_key: Optional[str],
-    context: BoltContext,
-    message: str = DEFAULT_HOME_TAB_MESSAGE,
-    single_workspace_mode: bool = False,
+        *,
+        api_key: Optional[str],
+        context: BoltContext,
+        message: str = DEFAULT_HOME_TAB_MESSAGE,
+        single_workspace_mode: bool = False,
 ) -> dict:
     original_sentences = "\n".join(
         [
@@ -139,11 +137,7 @@ def build_home_tab(
     translated_sentences = list(
         map(
             lambda s: s.replace("* ", ""),
-            translate(
-                api_key=api_key,
-                context=context,
-                text=original_sentences,
-            ).split("\n"),
+            original_sentences.split("\n"),
         )
     )
     message = translated_sentences[0]
