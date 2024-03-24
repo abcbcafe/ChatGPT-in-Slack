@@ -9,18 +9,16 @@ from app.bolt_listeners import before_authorize, register_listeners
 from app.env import (
     USE_SLACK_LANGUAGE,
     SLACK_APP_LOG_LEVEL,
-    OPENAI_MODEL,
-    OPENAI_TEMPERATURE,
-    OPENAI_API_TYPE,
-    OPENAI_API_BASE,
-    OPENAI_API_VERSION,
-    OPENAI_DEPLOYMENT_ID,
-    OPENAI_FUNCTION_CALL_MODULE_NAME,
+    LLM_MODEL,
+    LLM_TEMPERATURE,
+    LLM_API_BASE,
 )
 from app.slack_ops import build_home_tab
 
+import dotenv
 
 if __name__ == "__main__":
+    dotenv.load_dotenv()
     from slack_bolt.adapter.socket_mode import SocketModeHandler
 
     logging.basicConfig(level=SLACK_APP_LOG_LEVEL)
@@ -36,11 +34,11 @@ if __name__ == "__main__":
 
     @app.event("app_home_opened")
     def render_home_tab(client: WebClient, context: BoltContext):
-        already_set_api_key = os.environ["OPENAI_API_KEY"]
+        already_set_api_key = os.environ["ANTHROPIC_API_KEY"]
         client.views_publish(
             user_id=context.user_id,
             view=build_home_tab(
-                openai_api_key=already_set_api_key,
+                api_key=already_set_api_key,
                 context=context,
                 single_workspace_mode=True,
             ),
@@ -61,14 +59,10 @@ if __name__ == "__main__":
 
     @app.middleware
     def set_openai_api_key(context: BoltContext, next_):
-        context["OPENAI_API_KEY"] = os.environ["OPENAI_API_KEY"]
-        context["OPENAI_MODEL"] = OPENAI_MODEL
-        context["OPENAI_TEMPERATURE"] = OPENAI_TEMPERATURE
-        context["OPENAI_API_TYPE"] = OPENAI_API_TYPE
-        context["OPENAI_API_BASE"] = OPENAI_API_BASE
-        context["OPENAI_API_VERSION"] = OPENAI_API_VERSION
-        context["OPENAI_DEPLOYMENT_ID"] = OPENAI_DEPLOYMENT_ID
-        context["OPENAI_FUNCTION_CALL_MODULE_NAME"] = OPENAI_FUNCTION_CALL_MODULE_NAME
+        context["ANTHROPIC_API_KEY"] = os.environ["ANTHROPIC_API_KEY"]
+        context["ANTHROPIC_MODEL"] = LLM_MODEL
+        context["LLM_TEMPERATURE"] = LLM_TEMPERATURE
+        context["LLM_API_BASE"] = LLM_API_BASE
         next_()
 
     handler = SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"])

@@ -120,7 +120,7 @@ DEFAULT_HOME_TAB_CONFIGURE_LABEL = "Configure"
 
 def build_home_tab(
     *,
-    openai_api_key: Optional[str],
+    api_key: Optional[str],
     context: BoltContext,
     message: str = DEFAULT_HOME_TAB_MESSAGE,
     single_workspace_mode: bool = False,
@@ -140,7 +140,7 @@ def build_home_tab(
         map(
             lambda s: s.replace("* ", ""),
             translate(
-                openai_api_key=openai_api_key,
+                api_key=api_key,
                 context=context,
                 text=original_sentences,
             ).split("\n"),
@@ -176,7 +176,7 @@ def build_home_tab(
                 },
             ]
         )
-    if openai_api_key is not None:
+    if api_key is not None:
         blocks.extend(
             [
                 {

@@ -10,7 +10,7 @@ from slack_sdk.errors import SlackApiError
 from slack_sdk.web import WebClient
 
 from app.env import (
-    OPENAI_TIMEOUT_SECONDS,
+    LLM_TIMEOUT_SECONDS,
     SYSTEM_TEXT,
     TRANSLATE_MARKDOWN,
 )
@@ -34,19 +34,13 @@ from app.slack_ops import (
     build_thread_replies_as_combined_text,
 )
 
-from app.utils import redact_string
-
-#
-# Listener functions
-#
-
 
 def just_ack(ack: Ack):
     ack()
 
 
 TIMEOUT_ERROR_MESSAGE = (
-    f":warning: Apologies! It seems that OpenAI didn't respond within the {OPENAI_TIMEOUT_SECONDS}-second timeframe. "
+    f":warning: Apologies! It seems that OpenAI didn't respond within the {LLM_TIMEOUT_SECONDS}-second timeframe. "
     "Please try your request again later. "
     "If you wish to extend the timeout limit, "
     "you may consider deploying this app with customized settings on your infrastructure. :bow:"
@@ -80,9 +74,9 @@ def respond_to_app_mention(
     system_text = build_system_text(SYSTEM_TEXT, TRANSLATE_MARKDOWN, context)
     messages = [{"role": "system", "content": system_text}]
 
-    openai_api_key = context.get("OPENAI_API_KEY")
+    llm_api_key = context.get("ANTHROPIC_API_KEY")
     try:
-        if openai_api_key is None:
+        if llm_api_key is None:
             client.chat_postMessage(
                 channel=context.channel_id,
                 text="To use this app, please configure your OpenAI API key first",
@@ -100,7 +94,7 @@ def respond_to_app_mention(
                 limit=1000,
             ).get("messages", [])
             for reply in replies_in_thread:
-                reply_text = redact_string(reply.get("text"))
+                reply_text = reply.get("text")
                 messages.append(
                     {
                         "role": (
@@ -119,7 +113,6 @@ def respond_to_app_mention(
         else:
             # Strip bot Slack user ID from initial message
             msg_text = re.sub(f"<@{context.bot_user_id}>\\s*", "", payload["text"])
-            msg_text = redact_string(msg_text)
             messages.append(
                 {
                     "role": "user",
@@ -129,7 +122,7 @@ def respond_to_app_mention(
             )
 
         loading_text = translate(
-            openai_api_key=openai_api_key, context=context, text=DEFAULT_LOADING_TEXT
+            api_key=llm_api_key, context=context, text=DEFAULT_LOADING_TEXT
         )
         wip_reply = post_wip_message(
             client=client,
@@ -157,7 +150,7 @@ def respond_to_app_mention(
             )
         else:
             stream = start_receiving_openai_response(
-                openai_api_key=openai_api_key,
+                openai_api_key=llm_api_key,
                 model=context["OPENAI_MODEL"],
                 temperature=context["OPENAI_TEMPERATURE"],
                 messages=messages,
@@ -175,7 +168,7 @@ def respond_to_app_mention(
                 user_id=user_id,
                 messages=messages,
                 stream=stream,
-                timeout_seconds=OPENAI_TIMEOUT_SECONDS,
+                timeout_seconds=LLM_TIMEOUT_SECONDS,
                 translate_markdown=TRANSLATE_MARKDOWN,
             )
 
@@ -189,7 +182,7 @@ def respond_to_app_mention(
                 )
                 + "\n\n"
                 + translate(
-                    openai_api_key=openai_api_key,
+                    api_key=llm_api_key,
                     context=context,
                     text=TIMEOUT_ERROR_MESSAGE,
                 )
@@ -208,7 +201,7 @@ def respond_to_app_mention(
             )
             + "\n\n"
             + translate(
-                openai_api_key=openai_api_key,
+                api_key=llm_api_key,
                 context=context,
                 text=f":warning: Failed to start a conversation with ChatGPT: {e}",
             )
@@ -339,7 +332,7 @@ def respond_to_new_message(
 
         for reply in filtered_messages_in_context:
             msg_user_id = reply.get("user")
-            reply_text = redact_string(reply.get("text"))
+            reply_text = reply.get("text")
             messages.append(
                 {
                     "content": f"<@{msg_user_id}>: "
@@ -353,7 +346,7 @@ def respond_to_new_message(
             )
 
         loading_text = translate(
-            openai_api_key=openai_api_key, context=context, text=DEFAULT_LOADING_TEXT
+            api_key=openai_api_key, context=context, text=DEFAULT_LOADING_TEXT
         )
         wip_reply = post_wip_message(
             client=client,
@@ -417,7 +410,7 @@ def respond_to_new_message(
                 user_id=user_id,
                 messages=messages,
                 stream=stream,
-                timeout_seconds=OPENAI_TIMEOUT_SECONDS,
+                timeout_seconds=LLM_TIMEOUT_SECONDS,
                 translate_markdown=TRANSLATE_MARKDOWN,
             )
 
@@ -431,7 +424,7 @@ def respond_to_new_message(
                 )
                 + "\n\n"
                 + translate(
-                    openai_api_key=openai_api_key,
+                    api_key=openai_api_key,
                     context=context,
                     text=TIMEOUT_ERROR_MESSAGE,
                 )
@@ -473,7 +466,7 @@ def show_summarize_option_modal(
 ):
     openai_api_key = context.get("OPENAI_API_KEY")
     prompt = translate(
-        openai_api_key=openai_api_key,
+        api_key=openai_api_key,
         context=context,
         text=(
             "All replies posted in a Slack thread will be provided below. "
@@ -666,7 +659,7 @@ def prepare_and_share_thread_summary(
             thread_ts=private_metadata.get("thread_ts"),
         )
         here_is_summary = translate(
-            openai_api_key=openai_api_key,
+            api_key=openai_api_key,
             context=context,
             text="Here is the summary:",
         )
@@ -676,7 +669,7 @@ def prepare_and_share_thread_summary(
             openai_api_key=openai_api_key,
             prompt=prompt,
             thread_content=thread_content,
-            timeout_seconds=OPENAI_TIMEOUT_SECONDS,
+            timeout_seconds=LLM_TIMEOUT_SECONDS,
         )
 
         if where_to_display == "modal":
@@ -837,7 +830,7 @@ def display_proofreading_result(
             logger=logger,
             openai_api_key=openai_api_key,
             original_text=original_text,
-            timeout_seconds=OPENAI_TIMEOUT_SECONDS,
+            timeout_seconds=LLM_TIMEOUT_SECONDS,
         )
         client.views_update(
             view_id=payload["id"],
@@ -1042,7 +1035,7 @@ def display_chat_from_scratch_result(
             logger=logger,
             openai_api_key=openai_api_key,
             prompt=prompt,
-            timeout_seconds=OPENAI_TIMEOUT_SECONDS,
+            timeout_seconds=LLM_TIMEOUT_SECONDS,
         )
         client.views_update(
             view_id=payload["id"],
