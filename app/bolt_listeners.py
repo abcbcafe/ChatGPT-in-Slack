@@ -48,17 +48,17 @@ DEFAULT_LOADING_TEXT = ":hourglass_flowing_sand: Wait a second, please ..."
 
 
 def respond_to_app_mention(
-    context: BoltContext,
-    payload: dict,
-    client: WebClient,
-    logger: logging.Logger,
+        context: BoltContext,
+        payload: dict,
+        client: WebClient,
+        logger: logging.Logger,
 ):
     if payload.get("thread_ts") is not None:
         parent_message = find_parent_message(
             client, context.channel_id, payload.get("thread_ts")
         )
         if parent_message is not None and is_this_app_mentioned(
-            context, parent_message
+                context, parent_message
         ):
             # The message event handler will reply to this
             return
@@ -97,10 +97,10 @@ def respond_to_app_mention(
                             else "user"
                         ),
                         "content": (
-                            f"<@{reply['user'] if 'user' in reply else reply['username']}>: "
-                            + format_openai_message_content(
-                                reply_text, TRANSLATE_MARKDOWN
-                            )
+                                f"<@{reply['user'] if 'user' in reply else reply['username']}>: "
+                                + format_openai_message_content(
+                            reply_text, TRANSLATE_MARKDOWN
+                        )
                         ),
                     }
                 )
@@ -111,7 +111,7 @@ def respond_to_app_mention(
                 {
                     "role": "user",
                     "content": f"<@{user_id}>: "
-                    + format_openai_message_content(msg_text, TRANSLATE_MARKDOWN),
+                               + format_openai_message_content(msg_text, TRANSLATE_MARKDOWN),
                 }
             )
 
@@ -155,13 +155,13 @@ def respond_to_app_mention(
     except Timeout:
         if wip_reply is not None:
             text = (
-                (
-                    wip_reply.get("message", {}).get("text", "")
-                    if wip_reply is not None
-                    else ""
-                )
-                + "\n\n"
-                + TIMEOUT_ERROR_MESSAGE
+                    (
+                        wip_reply.get("message", {}).get("text", "")
+                        if wip_reply is not None
+                        else ""
+                    )
+                    + "\n\n"
+                    + TIMEOUT_ERROR_MESSAGE
             )
             client.chat_update(
                 channel=context.channel_id,
@@ -170,13 +170,13 @@ def respond_to_app_mention(
             )
     except Exception as e:
         text = (
-            (
-                wip_reply.get("message", {}).get("text", "")
-                if wip_reply is not None
-                else ""
-            )
-            + "\n\n"
-            + f":warning: Failed to start a conversation with Claudine: {e}"
+                (
+                    wip_reply.get("message", {}).get("text", "")
+                    if wip_reply is not None
+                    else ""
+                )
+                + "\n\n"
+                + f":warning: Failed to start a conversation with Claudine: {e}"
         )
         logger.exception(text, e)
         if wip_reply is not None:
@@ -188,10 +188,10 @@ def respond_to_app_mention(
 
 
 def respond_to_new_message(
-    context: BoltContext,
-    payload: dict,
-    client: WebClient,
-    logger: logging.Logger,
+        context: BoltContext,
+        payload: dict,
+        client: WebClient,
+        logger: logging.Logger,
 ):
     if payload.get("bot_id") is not None and payload.get("bot_id") != context.bot_id:
         # Skip a new message by a different app
@@ -309,7 +309,7 @@ def respond_to_new_message(
             messages.append(
                 {
                     "content": f"<@{msg_user_id}>: "
-                    + format_openai_message_content(reply_text, TRANSLATE_MARKDOWN),
+                               + format_openai_message_content(reply_text, TRANSLATE_MARKDOWN),
                     "role": (
                         "assistant"
                         if "user" in reply and reply["user"] == context.bot_user_id
@@ -361,13 +361,13 @@ def respond_to_new_message(
     except Timeout:
         if wip_reply is not None:
             text = (
-                (
-                    wip_reply.get("message", {}).get("text", "")
-                    if wip_reply is not None
-                    else ""
-                )
-                + "\n\n"
-                + TIMEOUT_ERROR_MESSAGE
+                    (
+                        wip_reply.get("message", {}).get("text", "")
+                        if wip_reply is not None
+                        else ""
+                    )
+                    + "\n\n"
+                    + TIMEOUT_ERROR_MESSAGE
             )
             client.chat_update(
                 channel=context.channel_id,
@@ -376,13 +376,13 @@ def respond_to_new_message(
             )
     except Exception as e:
         text = (
-            (
-                wip_reply.get("message", {}).get("text", "")
-                if wip_reply is not None
-                else ""
-            )
-            + "\n\n"
-            + f":warning: Failed to reply: {e}"
+                (
+                    wip_reply.get("message", {}).get("text", "")
+                    if wip_reply is not None
+                    else ""
+                )
+                + "\n\n"
+                + f":warning: Failed to reply: {e}"
         )
         logger.exception(text, e)
         if wip_reply is not None:
@@ -419,8 +419,8 @@ def start_chat_from_scratch(client: WebClient, body: dict):
 
 
 def ack_chat_from_scratch_modal_submission(
-    ack: Ack,
-    payload: dict,
+        ack: Ack,
+        payload: dict,
 ):
     prompt = extract_state_value(payload, "prompt").get("value")
     text = "\n".join(map(lambda s: f">{s}", prompt.split("\n")))
@@ -445,10 +445,10 @@ def ack_chat_from_scratch_modal_submission(
 
 
 def display_chat_from_scratch_result(
-    client: WebClient,
-    context: BoltContext,
-    logger: logging.Logger,
-    payload: dict,
+        client: WebClient,
+        context: BoltContext,
+        logger: logging.Logger,
+        payload: dict,
 ):
     try:
         prompt = extract_state_value(payload, "prompt").get("value")
@@ -506,7 +506,7 @@ def display_chat_from_scratch_result(
                         "text": {
                             "type": "mrkdwn",
                             "text": f"{text}\n\n:warning: My apologies! "
-                            f"An error occurred while generating the summary of this thread: {e}",
+                                    f"An error occurred while generating the summary of this thread: {e}",
                         },
                     },
                 ],
@@ -536,15 +536,15 @@ MESSAGE_SUBTYPES_TO_SKIP = ["message_changed", "message_deleted"]
 # this before_authorize function skips message changed/deleted events.
 # Especially, "message_changed" events can be triggered many times when the app rapidly updates its reply.
 def before_authorize(
-    body: dict,
-    payload: dict,
-    logger: logging.Logger,
-    next_,
+        body: dict,
+        payload: dict,
+        logger: logging.Logger,
+        next_,
 ):
     if (
-        is_event(body)
-        and payload.get("type") == "message"
-        and payload.get("subtype") in MESSAGE_SUBTYPES_TO_SKIP
+            is_event(body)
+            and payload.get("type") == "message"
+            and payload.get("subtype") in MESSAGE_SUBTYPES_TO_SKIP
     ):
         logger.debug(
             "Skipped the following middleware and listeners "
