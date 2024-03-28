@@ -1,23 +1,11 @@
-import enum
-import logging
 import re
-import threading
-import time
-from typing import List, Dict, Any, Generator, Tuple, Optional, Union
+from typing import List, Dict, Tuple, Optional, Union
 
 import anthropic
-import openai
 import tiktoken
-from openai.error import Timeout
-from openai.openai_object import OpenAIObject
 from slack_bolt import BoltContext
-from slack_sdk.web import WebClient
 
 from app.markdown import slack_to_markdown, markdown_to_slack
-from app.openai_constants import (
-    MAX_TOKENS,
-)
-from app.slack_ops import update_wip_message
 
 # ----------------------------
 # Internal functions
@@ -49,7 +37,7 @@ def messages_within_context_window(
     # Remove old messages to make sure we have room for max_tokens
     # See also: https://platform.openai.com/docs/guides/chat/introduction
     # > total tokens must be below the model’s maximum limit (e.g., 4096 tokens for gpt-3.5-turbo-0301)
-    max_context_tokens = context_length(context.get("LLM_MODEL")) - MAX_TOKENS - 1
+    max_context_tokens = context_length(context.get("LLM_MODEL")) - 1
     num_context_tokens = 0  # Number of tokens in the context window just before the earliest message is deleted
     while (num_tokens := calculate_num_tokens(messages)) > max_context_tokens:
         removed = False
@@ -87,136 +75,6 @@ def make_anthropic_call(message) -> object:
     print(text)
 
     return text
-
-
-def start_receiving_openai_response(
-        *,
-        openai_api_key: str,
-        model: str,
-        temperature: float,
-        messages: List[Dict[str, Union[str, Dict[str, str]]]],
-        user: str,
-        openai_api_type: str,
-        openai_api_base: str,
-        openai_api_version: str,
-        openai_deployment_id: str,
-        function_call_module_name: Optional[str],
-) -> Generator[OpenAIObject, Any, None]:
-    kwargs = {}
-    return openai.ChatCompletion.create(
-        api_key=openai_api_key,
-        model=model,
-        messages=messages,
-        top_p=1,
-        n=1,
-        max_tokens=MAX_TOKENS,
-        temperature=temperature,
-        presence_penalty=0,
-        frequency_penalty=0,
-        logit_bias={},
-        user=user,
-        stream=True,
-        api_type=openai_api_type,
-        api_base=openai_api_base,
-        api_version=openai_api_version,
-        deployment_id=openai_deployment_id,
-        **kwargs,
-    )
-
-
-def consume_openai_stream_to_write_reply(
-        *,
-        client: WebClient,
-        wip_reply: dict,
-        context: BoltContext,
-        user_id: str,
-        messages: List[Dict[str, Union[str, Dict[str, str]]]],
-        stream: Generator[OpenAIObject, Any, None],
-        timeout_seconds: int,
-        translate_markdown: bool,
-):
-    start_time = time.time()
-    assistant_reply: Dict[str, Union[str, Dict[str, str]]] = {
-        "role": "assistant",
-        "content": "",
-    }
-    messages.append(assistant_reply)
-    word_count = 0
-    threads = []
-    function_call: Dict[str, str] = {"name": "", "arguments": ""}
-    try:
-        loading_character = " ... :writing_hand:"
-        for chunk in stream:
-            spent_seconds = time.time() - start_time
-            if timeout_seconds < spent_seconds:
-                raise Timeout()
-            # Some versions of the Azure OpenAI API return an empty choices array in the first chunk
-            if context.get("OPENAI_API_TYPE") == "azure" and not chunk.choices:
-                continue
-            item = chunk.choices[0]
-            if item.get("finish_reason") is not None:
-                break
-            delta = item.get("delta")
-            if delta.get("content") is not None:
-                word_count += 1
-                assistant_reply["content"] += delta.get("content")
-                if word_count >= 20:
-                    def update_message():
-                        assistant_reply_text = format_assistant_reply(
-                            assistant_reply["content"], translate_markdown
-                        )
-                        wip_reply["message"]["text"] = assistant_reply_text
-                        update_wip_message(
-                            client=client,
-                            channel=context.channel_id,
-                            ts=wip_reply["message"]["ts"],
-                            text=assistant_reply_text + loading_character,
-                            messages=messages,
-                            user=user_id,
-                        )
-
-                    thread = threading.Thread(target=update_message)
-                    thread.daemon = True
-                    thread.start()
-                    threads.append(thread)
-                    word_count = 0
-            elif delta.get("function_call") is not None:
-                # Ignore function call suggestions after content has been received
-                if assistant_reply["content"] == "":
-                    for k in function_call.keys():
-                        function_call[k] += delta["function_call"].get(k, "")
-                    assistant_reply["function_call"] = function_call
-
-        for t in threads:
-            try:
-                if t.is_alive():
-                    t.join()
-            except Exception:
-                pass
-
-        assistant_reply_text = format_assistant_reply(
-            assistant_reply["content"], translate_markdown
-        )
-        wip_reply["message"]["text"] = assistant_reply_text
-        update_wip_message(
-            client=client,
-            channel=context.channel_id,
-            ts=wip_reply["message"]["ts"],
-            text=assistant_reply_text,
-            messages=messages,
-            user=user_id,
-        )
-    finally:
-        for t in threads:
-            try:
-                if t.is_alive():
-                    t.join()
-            except Exception:
-                pass
-        try:
-            stream.close()
-        except Exception:
-            pass
 
 
 def context_length(

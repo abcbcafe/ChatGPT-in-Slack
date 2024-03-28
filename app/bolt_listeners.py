@@ -13,9 +13,7 @@ from app.env import (
     TRANSLATE_MARKDOWN,
 )
 from app.openai_ops import (
-    start_receiving_openai_response,
     format_openai_message_content,
-    consume_openai_stream_to_write_reply,
     build_system_text,
     messages_within_context_window,
     make_anthropic_call,
