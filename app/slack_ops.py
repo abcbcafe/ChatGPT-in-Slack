@@ -1,8 +1,9 @@
-from typing import Optional
 from typing import List, Dict
+from typing import Optional
 
-from slack_sdk.web import WebClient, SlackResponse
 from slack_bolt import BoltContext
+from slack_sdk.web import WebClient, SlackResponse
+
 from app.markdown import slack_to_markdown
 
 
