@@ -1,6 +1,7 @@
 import enum
 
 import anthropic
+import requests
 
 from app.LlmAdapter import LlmAdapter
 
@@ -13,12 +14,13 @@ class AnthropicModelType(enum.Enum):
 
 class AnthropicAdapter(LlmAdapter):
 
-    def __init__(self,
-                 api_key: str,
-                 system_prompt: str = "You are the Allied Mastercomputer. Be succinct.",
-                 model: AnthropicModelType = AnthropicModelType.CLAUDE_3_SONNET,
-                 temperature: float = 0.95
-                 ):
+    def __init__(
+        self,
+        api_key: str,
+        system_prompt: str = "You are the Allied Mastercomputer. Be succinct.",
+        model: AnthropicModelType = AnthropicModelType.CLAUDE_3_SONNET,
+        temperature: float = 0.95,
+    ):
         self.temperature = temperature
         self.model = model
         self.api_key = api_key
@@ -33,10 +35,18 @@ class AnthropicAdapter(LlmAdapter):
             temperature=self.temperature,
             max_tokens=4096,
             system=self.system_prompt,
-            messages=[
-                {"role": "user", "content": f"{messages}"}
-            ]
+            messages=[{"role": "user", "content": f"{messages}"}],
         )
         text = completion.content[0].text
         print(text)
         return text
+
+    def summarise_webpage(self, url):
+        response = requests.get(url)
+        if response.status_code == 200:
+            page_content = response.text
+        else:
+            print(f"Failed to fetch the web page. Status code: {response.status_code}")
+            exit(1)
+        prompt = f"<content>{page_content}</content>Please produce a concise summary of the web page content."
+        return self.generate_text(prompt)
