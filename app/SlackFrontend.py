@@ -9,7 +9,7 @@ from slack_bolt.request.payload_utils import is_event
 from slack_sdk.http_retry import RateLimitErrorRetryHandler
 from slack_sdk.web import WebClient
 
-from app.AnthropicAdapter import LlmAdapter
+from app.LlmAdapter import LlmAdapter
 from app.env import (
     LLM_TIMEOUT_SECONDS,
     SYSTEM_TEXT,
@@ -24,7 +24,7 @@ from app.slack_ops import (
     is_this_app_mentioned,
     post_wip_message,
     update_wip_message,
-    extract_state_value, build_home_tab,
+    extract_state_value,
 )
 
 TIMEOUT_ERROR_MESSAGE = (
@@ -59,7 +59,6 @@ class SlackFrontend:
         # Replace placeholder for Slack user ID in the system prompt
         system_text = build_system_text(SYSTEM_TEXT, TRANSLATE_MARKDOWN, context)
         messages = [{"role": "system", "content": system_text}]
-
 
         try:
             user_id = context.actor_user_id or context.user_id
@@ -514,6 +513,7 @@ class SlackFrontend:
             )
             return BoltResponse(status=200, body="")
         next_()
+
     def start(self):
         from slack_bolt.adapter.socket_mode import SocketModeHandler
 
@@ -527,18 +527,6 @@ class SlackFrontend:
         app.client.retry_handlers.append(RateLimitErrorRetryHandler(max_retry_count=2))
 
         self.register_listeners(app)
-
-        @app.event("app_home_opened")
-        def render_home_tab(client: WebClient, context: BoltContext):
-            already_set_api_key = os.environ["ANTHROPIC_API_KEY"]
-            client.views_publish(
-                user_id=context.user_id,
-                view=build_home_tab(
-                    api_key=already_set_api_key,
-                    context=context,
-                    single_workspace_mode=True,
-                ),
-            )
 
         if USE_SLACK_LANGUAGE is True:
             @app.middleware
@@ -554,4 +542,3 @@ class SlackFrontend:
 
         handler = SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"])
         handler.start()
-

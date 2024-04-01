@@ -1,20 +1,22 @@
-import abc
-from abc import ABC
+import enum
 
 import anthropic
 
+from app.LlmAdapter import LlmAdapter
 
-class LlmAdapter(ABC):
-    @abc.abstractmethod
-    def generate_text(self, messages):
-        pass
+
+class AnthropicModelType(enum.Enum):
+    CLAUDE_3_SONNET = "claude-3-sonnet-20240229"
+    CLAUDE_3_OPUS = "claude-3-opus-20240229"
+    # Add more model types as needed
 
 
 class AnthropicAdapter(LlmAdapter):
+
     def __init__(self,
                  api_key: str,
                  system_prompt: str = "You are the Allied Mastercomputer. Be succinct.",
-                 model: str = "claude-3-sonnet-20240229",
+                 model: AnthropicModelType = AnthropicModelType.CLAUDE_3_SONNET,
                  temperature: float = 0.95
                  ):
         self.temperature = temperature
@@ -27,7 +29,7 @@ class AnthropicAdapter(LlmAdapter):
 
         completion = anthropic.Anthropic().messages.create(
             # model="claude-3-opus-20240229",
-            model=self.model,
+            model=self.model.value,
             temperature=self.temperature,
             max_tokens=4096,
             system=self.system_prompt,

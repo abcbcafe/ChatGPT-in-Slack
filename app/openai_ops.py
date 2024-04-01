@@ -1,7 +1,6 @@
 import re
 from typing import List, Dict, Tuple, Optional, Union
 
-import anthropic
 import tiktoken
 from slack_bolt import BoltContext
 
@@ -23,7 +22,7 @@ def format_openai_message_content(content: str, translate_markdown: bool) -> str
     # See also: https://api.slack.com/reference/surfaces/formatting#escaping
     content = content.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
 
-    # Convert from Slack mrkdwn to markdown format
+    # Convert from Slack markdown to Markdown format
     if translate_markdown:
         content = slack_to_markdown(content)
 
@@ -37,7 +36,7 @@ def messages_within_context_window(
     # Remove old messages to make sure we have room for max_tokens
     # See also: https://platform.openai.com/docs/guides/chat/introduction
     # > total tokens must be below the model’s maximum limit (e.g., 4096 tokens for gpt-3.5-turbo-0301)
-    max_context_tokens = context_length() - 1
+    max_context_tokens = 128000
     num_context_tokens = 0  # Number of tokens in the context window just before the earliest message is deleted
     while (num_tokens := calculate_num_tokens(messages)) > max_context_tokens:
         removed = False
@@ -54,11 +53,6 @@ def messages_within_context_window(
         num_context_tokens = num_tokens
 
     return messages, num_context_tokens, max_context_tokens
-
-
-def context_length(
-) -> int:
-    return 128000
 
 
 # Adapted from https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb
@@ -123,7 +117,7 @@ def format_assistant_reply(content: str, translate_markdown: bool) -> str:
     ]:
         content = re.sub(o, n, content)
 
-    # Convert from OpenAI markdown to Slack mrkdwn format
+    # Convert from OpenAI markdown to Slack Markdown format
     if translate_markdown:
         content = markdown_to_slack(content)
 
