@@ -1,6 +1,9 @@
 import enum
+import os
+import re
 
 import anthropic
+from dotenv import load_dotenv
 import requests
 
 from app.LlmAdapter import LlmAdapter
@@ -50,3 +53,15 @@ class AnthropicAdapter(LlmAdapter):
             exit(1)
         prompt = f"<content>{page_content}</content>Please produce a concise summary of the web page content."
         return self.generate_text(prompt)
+
+
+def find_first_url_in_message(message):
+    tmp = message[-1]["content"]
+    if "https://" in tmp:
+        # remove <> from the url
+        url = re.findall("https://.*", tmp)[0]
+        url = url.replace(">", "")
+        print(url)
+        return url
+    else:
+        return None

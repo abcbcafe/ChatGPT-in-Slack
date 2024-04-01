@@ -9,6 +9,7 @@ from slack_sdk.http_retry import RateLimitErrorRetryHandler
 from slack_sdk.web import WebClient
 
 from app.LlmAdapter import LlmAdapter
+from app.AnthropicAdapter import find_first_url_in_message
 from app.env import (
     LLM_TIMEOUT_SECONDS,
     SYSTEM_TEXT,
@@ -120,7 +121,11 @@ class SlackFrontend:
                 max_context_tokens,
             ) = messages_within_context_window(messages, context=context)
 
-            output = self.llm_adapter.generate_text(messages)
+            if find_first_url_in_message(messages) is not None:
+                url = find_first_url_in_message(messages)
+                output = self.llm_adapter.summarize_webpage(url)
+            else:
+                output = self.llm_adapter.generate_text(messages)
             update_wip_message(
                 client=client,
                 channel=context.channel_id,
@@ -147,13 +152,6 @@ class SlackFrontend:
                     ts=wip_reply["message"]["ts"],
                     text=text,
                 )
-
-    def find_first_url_in_message(self, message):
-        if "https://" in message:
-            url = re.findall("https://.*", message)[0]
-            return url
-        else:
-            return None
 
     def respond_to_new_message(
         self,
@@ -319,8 +317,8 @@ class SlackFrontend:
                     user=context.user_id,
                 )
             else:
-                if self.find_first_url_in_message(messages) is not None:
-                    url = self.find_first_url_in_message(messages)
+                if find_first_url_in_message(message) is not None:
+                    url = find_first_url_in_message(message)
                     anthropic_call = self.llm_adapter.summarize_webpage(url)
                 else:
                     anthropic_call = self.llm_adapter.generate_text(messages)
