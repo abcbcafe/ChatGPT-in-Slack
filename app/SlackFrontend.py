@@ -166,8 +166,8 @@ class SlackFrontend:
                 )
 
     def find_first_url_in_message(self, message):
-        if "http://" in message:
-            url = re.findall("http://.*", message)[0]
+        if "https://" in message:
+            url = re.findall("https://.*", message)[0]
             return url
         else:
             return None
