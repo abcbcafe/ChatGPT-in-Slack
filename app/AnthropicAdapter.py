@@ -41,7 +41,7 @@ class AnthropicAdapter(LlmAdapter):
         print(text)
         return text
 
-    def summarise_webpage(self, url):
+    def summarize_webpage(self, url):
         response = requests.get(url)
         if response.status_code == 200:
             page_content = response.text

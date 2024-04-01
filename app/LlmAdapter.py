@@ -7,4 +7,6 @@ class LlmAdapter(ABC):
     def generate_text(self, messages):
         pass
 
-
+    @abc.abstractmethod
+    def summarize_webpage(self, messages):
+        pass
