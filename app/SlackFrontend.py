@@ -3,7 +3,6 @@ import os
 import re
 import time
 
-from openai.error import Timeout
 from slack_bolt import App, Ack, BoltContext, BoltResponse
 from slack_bolt.request.payload_utils import is_event
 from slack_sdk.http_retry import RateLimitErrorRetryHandler
@@ -131,22 +130,6 @@ class SlackFrontend:
                 user=context.user_id,
             )
 
-        except Timeout:
-            if wip_reply is not None:
-                text = (
-                    (
-                        wip_reply.get("message", {}).get("text", "")
-                        if wip_reply is not None
-                        else ""
-                    )
-                    + "\n\n"
-                    + TIMEOUT_ERROR_MESSAGE
-                )
-                client.chat_update(
-                    channel=context.channel_id,
-                    ts=wip_reply["message"]["ts"],
-                    text=text,
-                )
         except Exception as e:
             text = (
                 (
@@ -353,22 +336,6 @@ class SlackFrontend:
                     user=user_id,
                 )
 
-        except Timeout:
-            if wip_reply is not None:
-                text = (
-                    (
-                        wip_reply.get("message", {}).get("text", "")
-                        if wip_reply is not None
-                        else ""
-                    )
-                    + "\n\n"
-                    + TIMEOUT_ERROR_MESSAGE
-                )
-                client.chat_update(
-                    channel=context.channel_id,
-                    ts=wip_reply["message"]["ts"],
-                    text=text,
-                )
         except Exception as e:
             text = (
                 (
@@ -460,25 +427,6 @@ class SlackFrontend:
                             "text": {
                                 "type": "mrkdwn",
                                 "text": f"{text}\n\n{result}",
-                            },
-                        },
-                    ],
-                },
-            )
-        except Timeout:
-            client.views_update(
-                view_id=payload["id"],
-                view={
-                    "type": "modal",
-                    "callback_id": "chat-from-scratch",
-                    "title": {"type": "plain_text", "text": "Claudine"},
-                    "close": {"type": "plain_text", "text": "Close"},
-                    "blocks": [
-                        {
-                            "type": "section",
-                            "text": {
-                                "type": "mrkdwn",
-                                "text": f"{text}\n\n{TIMEOUT_ERROR_MESSAGE}",
                             },
                         },
                     ],
