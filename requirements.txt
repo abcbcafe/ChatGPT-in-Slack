@@ -3,6 +3,9 @@ slack-sdk>=3.23.0,<4
 tiktoken>=0.5.1,<0.6
 # https://github.com/Yelp/elastalert/issues/2306
 urllib3<2
-anthropic
-python-dotenv
-groq
+anthropic~=0.21.3
+python-dotenv~=1.0.1
+groq~=0.4.2
+
+slack_sdk~=3.27.1
+requests~=2.31.0
